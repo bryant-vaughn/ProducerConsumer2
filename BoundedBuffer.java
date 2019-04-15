@@ -28,9 +28,8 @@ public class BoundedBuffer {
 
 	// Put an item in the bounded buffer. Block if full.
 	public synchronized void put(int value) throws InterruptedException {
-		while(count == numSlots) {
+		while(count == numSlots)
 			wait();
-		}
 
 		buffer[putIn] = value;
 		putIn = (putIn + 1) % numSLots;
@@ -40,9 +39,8 @@ public class BoundedBuffer {
 
 	// Remove an item from a bounded buffer. Block if empty
 	public synchronized int get() throws InterruptedException {
-		while(count == 0) {
+		while(count == 0)
 			wait();
-		}
 
 		int value = buffer[takeOut];
 		takeOut = (takeOut + 1) % numSlots;
