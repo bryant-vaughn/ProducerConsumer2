@@ -11,75 +11,43 @@
  * MSU Denver
  */
 
-import java.util.*;
+public class BoundedBuffer {
+	protected int numSlots;
+	private int[] buffer;
+	private int takeOut = 0, putIn = 0;
+	private int count = 0;
 
-@SuppressWarnings("unchecked")
-
-public class BoundedBuffer<E> implements Buffer<E> {
-
-	private static final int BUFFER_SIZE = 5;
-
-	private Semaphore mutex;
-	private Semaphore empty;
-	private Semaphore full;
-
-	private int count;
-	private int in, out;
-	private E[] buffer;
-
-	public BoundedBuffer() {
-
-		// buffer is initially empty
-		count = 0;
-		in = 0;
-		out = 0;
-
-		buffer = (E[]) new Object[BUFFER_SIZE];
-
-		mutex = new Semaphore(1);
-		empty = new Semaphore(BUFFER_SIZE);
-		full = new Semaphore(0);
-	}
-
-	// producer calls this method
-	public void insert(E item) {
-		empty.acquire();
-		mutex.acquire();
-
-		// add an item to the buffer
-		++count;
-		buffer[in] = item;
-		in = (in + 1) %BUFFER_SIZE;
-
-		if(count == BUFFER_SIZE) {
-			System.out.println("Producer Entered " + item + " Buffer FULL");
-		} else {
-			System.out.println("Producer Entered " + item + " Buffer Size = " + count);
+	public BoundedBuffer(int numSlots) {
+		if(numSlots <= 0) {
+			throw new IllegalArgumentException("numSlots <= 0");
 		}
 
-		mutex.release();
-		full.release();
+		this.numSlots = numSlots;
+		buffer = new int[numSlots];
 	}
 
-	// consumer calls this method
-	public E remove() {
-		full.acquire();
-		mutex.acquire();
-
-		// remove an item from the buffer
-		--count;
-		E item = buffer[out];
-		out = (out + 1) % BUFFER_SIZE;
-
-		if(count == 0) {
-			System.out.println("Consumer Consumed " + item + " Buffer EMPTY");
-		} else {
-			System.out.println("Consumer Consumed " + item + " Buffer Size = " + count);
+	// Put an item in the bounded buffer. Block if full.
+	public synchronized void put(int value) throws InterruptedException {
+		while(count == numSlots) {
+			wait();
 		}
 
-		mutex.release();
-		empty.release();
+		buffer[putIn] = value;
+		putIn = (putIn + 1) % numSLots;
+		count++;
+		notifyAll();
+	}
 
-		return item;
+	// Remove an item from a bounded buffer. Block if empty
+	public synchronized int get() throws InterruptedException {
+		while(count == 0) {
+			wait();
+		}
+
+		int value = buffer[takeOut];
+		takeOut = (takeOut + 1) % numSlots;
+		count--;
+		notifyAll();
+		return value;
 	}
 }
